@@ -2,13 +2,19 @@
 
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from agenda.banco import obter_sessao
-from agenda.esquemas import ProfissionalAtualizar, ProfissionalCriar, ProfissionalLer
-from agenda.modelos import Profissional
+from agenda.esquemas import (
+    ProfissionalAtualizar,
+    ProfissionalCriar,
+    ProfissionalLer,
+    ServicoLer,
+    ServicosDoProfissional,
+)
+from agenda.modelos import Profissional, Servico
 from agenda.rotas.comum import buscar_ou_404, remover, salvar
 
 router = APIRouter(prefix="/profissionais", tags=["profissionais"])
@@ -58,3 +64,36 @@ def atualizar(
 )
 def excluir(profissional_id: int, sessao: SessaoDep) -> None:
     remover(sessao, buscar_ou_404(sessao, Profissional, profissional_id, "Profissional"))
+
+
+@router.get(
+    "/{profissional_id}/servicos",
+    response_model=list[ServicoLer],
+    summary="Lista os serviços que o profissional atende",
+)
+def listar_servicos(profissional_id: int, sessao: SessaoDep) -> list[Servico]:
+    return buscar_ou_404(sessao, Profissional, profissional_id, "Profissional").servicos
+
+
+@router.put(
+    "/{profissional_id}/servicos",
+    response_model=list[ServicoLer],
+    summary="Define os serviços que o profissional atende",
+    description="Substitui a lista inteira. Envie `[]` para desvincular todos.",
+)
+def definir_servicos(
+    profissional_id: int, dados: ServicosDoProfissional, sessao: SessaoDep
+) -> list[Servico]:
+    profissional = buscar_ou_404(sessao, Profissional, profissional_id, "Profissional")
+    ids = set(dados.servico_ids)
+    encontrados = list(sessao.scalars(select(Servico).where(Servico.id.in_(ids)))) if ids else []
+    faltando = sorted(ids - {s.id for s in encontrados})
+    if faltando:
+        raise HTTPException(
+            422,  # mesmo código que o FastAPI usa para corpo inválido
+            f"Serviços inexistentes: {', '.join(map(str, faltando))}.",
+        )
+    profissional.servicos = encontrados
+    sessao.commit()
+    sessao.refresh(profissional)
+    return profissional.servicos

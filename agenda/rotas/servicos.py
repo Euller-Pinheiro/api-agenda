@@ -7,8 +7,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from agenda.banco import obter_sessao
-from agenda.esquemas import ServicoAtualizar, ServicoCriar, ServicoLer
-from agenda.modelos import Servico
+from agenda.esquemas import ProfissionalLer, ServicoAtualizar, ServicoCriar, ServicoLer
+from agenda.modelos import Profissional, Servico
 from agenda.rotas.comum import buscar_ou_404, remover, salvar
 
 router = APIRouter(prefix="/servicos", tags=["serviços"])
@@ -49,3 +49,22 @@ def atualizar(servico_id: int, dados: ServicoAtualizar, sessao: SessaoDep) -> Se
 @router.delete("/{servico_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Remove um serviço")
 def excluir(servico_id: int, sessao: SessaoDep) -> None:
     remover(sessao, buscar_ou_404(sessao, Servico, servico_id, "Serviço"))
+
+
+@router.get(
+    "/{servico_id}/profissionais",
+    response_model=list[ProfissionalLer],
+    summary="Lista os profissionais que atendem o serviço",
+)
+def listar_profissionais(
+    servico_id: int, sessao: SessaoDep, ativo: bool | None = None
+) -> list[Profissional]:
+    buscar_ou_404(sessao, Servico, servico_id, "Serviço")
+    consulta = (
+        select(Profissional)
+        .where(Profissional.servicos.any(Servico.id == servico_id))
+        .order_by(Profissional.nome)
+    )
+    if ativo is not None:
+        consulta = consulta.where(Profissional.ativo == ativo)
+    return list(sessao.scalars(consulta))

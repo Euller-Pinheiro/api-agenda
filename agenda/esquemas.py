@@ -146,3 +146,12 @@ class ClienteLer(_Saida):
     nome: str
     email: str | None
     telefone: str | None
+
+
+# --- Vínculo profissional <-> serviço ----------------------------------------
+
+
+class ServicosDoProfissional(_Entrada):
+    """Lista completa dos serviços que o profissional atende (substitui a anterior)."""
+
+    servico_ids: Annotated[list[int], Field(max_length=200)]
