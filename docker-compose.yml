@@ -1,0 +1,31 @@
+# Ambiente de desenvolvimento. As senhas abaixo são só para uso local.
+services:
+  banco:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: agenda
+      POSTGRES_PASSWORD: agenda
+      POSTGRES_DB: agenda
+    ports:
+      - "5432:5432"
+    volumes:
+      - dados-banco:/var/lib/postgresql/data
+      - ./scripts/criar-banco-teste.sql:/docker-entrypoint-initdb.d/criar-banco-teste.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U agenda -d agenda"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build: .
+    environment:
+      DATABASE_URL: postgresql+psycopg://agenda:agenda@banco:5432/agenda
+    ports:
+      - "8000:8000"
+    depends_on:
+      banco:
+        condition: service_healthy
+
+volumes:
+  dados-banco:
