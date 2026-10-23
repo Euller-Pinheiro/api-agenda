@@ -8,6 +8,8 @@ import os
 from collections.abc import Iterator
 
 import pytest
+from alembic import command
+from alembic.config import Config
 from fastapi.testclient import TestClient
 from sqlalchemy import Connection, Engine, create_engine
 from sqlalchemy.orm import Session
@@ -20,8 +22,19 @@ URL_TESTE = os.environ.get(
 )
 
 
+def config_alembic() -> Config:
+    config = Config("alembic.ini")
+    config.set_main_option("sqlalchemy.url", URL_TESTE)
+    return config
+
+
 @pytest.fixture(scope="session")
 def engine() -> Iterator[Engine]:
+    # O esquema dos testes nasce das migrações, não de create_all(): assim
+    # uma migração quebrada derruba o CI antes de chegar em produção.
+    config = config_alembic()
+    command.downgrade(config, "base")
+    command.upgrade(config, "head")
     engine = create_engine(URL_TESTE)
     yield engine
     engine.dispose()

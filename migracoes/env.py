@@ -6,6 +6,7 @@ from alembic import context
 from sqlalchemy import create_engine
 
 from agenda.config import obter_configuracao
+from agenda.modelos import Base
 
 config = context.config
 if config.config_file_name is not None:
@@ -14,7 +15,7 @@ if config.config_file_name is not None:
 # Quem chama (por exemplo, os testes) pode passar outra URL via `sqlalchemy.url`.
 url = config.get_main_option("sqlalchemy.url") or obter_configuracao().database_url
 
-target_metadata = None
+target_metadata = Base.metadata
 
 
 def rodar_offline() -> None:
