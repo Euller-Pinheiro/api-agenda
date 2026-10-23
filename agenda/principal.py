@@ -2,6 +2,8 @@
 
 from fastapi import FastAPI
 
+from agenda.rotas import profissionais, servicos
+
 
 def criar_app() -> FastAPI:
     app = FastAPI(
@@ -14,6 +16,8 @@ def criar_app() -> FastAPI:
     def saude() -> dict[str, str]:
         return {"status": "ok"}
 
+    app.include_router(profissionais.router)
+    app.include_router(servicos.router)
     return app
 
 
