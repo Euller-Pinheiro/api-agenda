@@ -123,3 +123,26 @@ class ProfissionalLer(_Saida):
     nome: str
     email: str
     ativo: bool
+
+
+# --- Cliente ---------------------------------------------------------------
+
+
+class ClienteCriar(_Entrada):
+    nome: Nome
+    email: Email | None = None
+    telefone: Telefone | None = None
+
+
+class ClienteAtualizar(_Atualizacao):
+    _nao_anulaveis = frozenset({"nome"})
+
+    nome: Nome | None = None
+    email: Email | None = None
+    telefone: Telefone | None = None
+
+
+class ClienteLer(_Saida):
+    nome: str
+    email: str | None
+    telefone: str | None
